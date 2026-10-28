@@ -80,5 +80,5 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # Cseréld ki a bot tokenedre!
-TOKEN = "MTU2NTAyNzMzNzE0ODU2NzU4NA.GMk461.Ynl0FR5D1DZY62Fs3NfRqGe3cYU85KdoKLV-28"
+TOKEN = "MTU2NTAyNzMzNzE0ODU2NzU4NA.GEeZIh.Z9POKuRE8aDSlG4EAqTtQoXNgXXcjYmHK41Bzo"
 bot.run(TOKEN)
