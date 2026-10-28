@@ -1,4 +1,5 @@
 import os
+import time
 import discord
 from discord.ext import commands
 
@@ -17,6 +18,9 @@ SOURCE_CHANNELS = [
 TARGET_CHANNEL_ID = 1565026972663549982
 PING_ROLE_ID = 1565051902964670524
 
+# Duplikáció elleni védelem (ha esetleg több szál futna)
+last_sent_messages = {}
+
 
 @bot.event
 async def on_ready():
@@ -32,19 +36,24 @@ async def on_message(message):
 
     # Ellenőrizzük, hogy a megadott forrás csatornák valamelyikéből jött-e az üzenet
     if message.channel.id in SOURCE_CHANNELS:
+        # Duplikáció szűrés (ha 2 másodpercen belül ugyanaz az üzenet érkezik, eldobja)
+        current_time = time.time()
+        msg_key = (message.content, message.author.id)
+        if msg_key in last_sent_messages and current_time - last_sent_messages[msg_key] < 2.0:
+            return
+        last_sent_messages[msg_key] = current_time
+
         target_channel = bot.get_channel(TARGET_CHANNEL_ID)
         
         if target_channel:
             role_mention = f"<@&{PING_ROLE_ID}>"
 
-            # Ha az eredeti üzenetben volt embed (pl. sorsolás), küldjük azt is a pinggel
             if message.embeds:
                 await target_channel.send(content=role_mention, embeds=message.embeds)
             else:
-                # KIZÁRÓLAG AZ EMBEDES / KÁRTYÁS FORMATUMOT KÜLDJE (Nincs több alsó duplikált sima szöveg!)
                 embed = discord.Embed(
                     description=message.content,
-                    color=0x2b2d31 # Discord sötét háttérszín stílus
+                    color=0x2b2d31
                 )
                 embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
                 
