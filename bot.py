@@ -35,22 +35,25 @@ async def on_message(message):
         target_channel = bot.get_channel(TARGET_CHANNEL_ID)
         
         if target_channel:
-            # Itt történik a varázslat: a rang ID-jét igazi Discord ping formátumba alakítjuk (<@&ID>)
             role_mention = f"<@&{PING_ROLE_ID}>"
-            
-            # Összeállítjuk az üzenetet a rang pingelésével és az eredeti szöveggel
-            content_to_send = f"{role_mention}\n{message.content}"
-            
-            # Ha az üzenet tartalmaz embedet (sorsolási kártyát), azt is továbbítjuk a szöveggel és a pinggel együtt
+
+            # Ha az eredeti üzenetben volt embed (pl. sorsolás), küldjük azt is a pinggel
             if message.embeds:
-                await target_channel.send(content=content_to_send, embeds=message.embeds)
+                await target_channel.send(content=role_mention, embeds=message.embeds)
             else:
-                await target_channel.send(content=content_to_send)
+                # Ha sima szöveges üzenet volt, öntsük egy szép, sötét tónusú Embedbe, hogy ne legyen csúnya
+                embed = discord.Embed(
+                    description=message.content,
+                    color=0x2b2d31 # Discord sötét háttérszín stílus
+                )
+                embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+                
+                await target_channel.send(content=role_mention, embed=embed)
 
     await bot.process_commands(message)
 
 
-# A Token lekérése a Render környezeti változójából (biztonságos módszer)
+# A Token lekérése a Render környezeti változójából
 TOKEN = os.getenv("TOKEN")
 
 if not TOKEN:
