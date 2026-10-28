@@ -1,19 +1,17 @@
 import discord
 from discord.ext import commands
 
-# 1. és 2. Forrás csatornák: ITT CSAK A BOTOK ÜZENETEIT FIGYELI
+# Forrás csatornák listája (ahol CSAK a botok üzeneteit figyeli)
 BOT_ONLY_CHANNELS = [
     1458946879818567755,
-    1564310566288498748
+    1564310566288498748,
+    1564310566288498748  # Új szoba hozzáadva
 ]
 
-# 3. Forrás csatorna: ITT MINDENKID ÜZENETÉT FIGYELI (vagy szűrheted ID alapján is)
+# Forrás csatornák, ahol MINDENKIT (bárkit) figyel
 EVERYONE_CHANNELS = [
     1410014162666393660
 ]
-
-# Opcionális: Ha az új szobában CSAK EGY BIZONYOS BOTID-t akarsz figyelni, írd be ide (ha bárkit akarsz, hagyd üresen: None)
-SPECIFIC_BOT_ID_TO_WATCH = None # Pl.: 1410014162666393660 
 
 # Cél csatorna (ahová minden átkerül)
 TARGET_CHANNEL_ID = 1565026972663549982
@@ -57,16 +55,13 @@ async def on_message(message):
 
     should_forward = False
 
-    # 1. Eset: Bot-only csatornák (csak botok üzenetei)
+    # 1. Eset: Bot-only csatornák (itt csak a botok üzeneteit küldi át)
     if message.channel.id in BOT_ONLY_CHANNELS and message.author.bot:
         should_forward = True
 
     # 2. Eset: Mindenkit figyelő csatornák
     elif message.channel.id in EVERYONE_CHANNELS:
-        if SPECIFIC_BOT_ID_TO_WATCH is None:
-            should_forward = True  # Bárki üzenetét átküldi
-        elif message.author.id == SPECIFIC_BOT_ID_TO_WATCH:
-            should_forward = True  # Csak a megadott ID-jű botét
+        should_forward = True
 
     # Ha teljesül a feltétel, átküldjük
     if should_forward:
