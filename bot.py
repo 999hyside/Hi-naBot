@@ -41,7 +41,7 @@ async def on_message(message):
             if message.embeds:
                 await target_channel.send(content=role_mention, embeds=message.embeds)
             else:
-                # Ha sima szöveges üzenet volt, öntsük egy szép, sötét tónusú Embedbe, hogy ne legyen csúnya
+                # KIZÁRÓLAG AZ EMBEDES / KÁRTYÁS FORMATUMOT KÜLDJE (Nincs több alsó duplikált sima szöveg!)
                 embed = discord.Embed(
                     description=message.content,
                     color=0x2b2d31 # Discord sötét háttérszín stílus
