@@ -33,13 +33,15 @@ async def on_message(message):
         
         content_lines = []
         
-        # Ha van sima szöveg
+        # 1. Sima üzenet szövege
         if message.content:
             content_lines.append(message.content)
             
-        # Embed adatok teljeskörű kinyerése (cím, leírás, mezők, lábléc)
+        # 2. Embed elemek teljeskörű kibányászása (Szerző, Cím, Leírás, Mezők, Lábléc)
         if message.embeds:
             for emb in message.embeds:
+                if emb.author and emb.author.name:
+                    content_lines.append(f"🔄 **{emb.author.name}**")
                 if emb.title:
                     content_lines.append(f"**{emb.title}**")
                 if emb.description:
