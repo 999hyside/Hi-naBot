@@ -32,20 +32,27 @@ async def on_message(message):
         current_time = time.time()
         
         content_lines = []
+        
+        # Ha van sima szöveg
         if message.content:
             content_lines.append(message.content)
             
+        # Embed adatok teljeskörű kinyerése (cím, leírás, mezők, lábléc)
         if message.embeds:
             for emb in message.embeds:
                 if emb.title:
                     content_lines.append(f"**{emb.title}**")
                 if emb.description:
                     content_lines.append(emb.description)
-                for field in emb.fields:
-                    content_lines.append(f"\n**{field.name}**\n{field.value}")
+                if emb.fields:
+                    for field in emb.fields:
+                        content_lines.append(f"\n**{field.name}**\n{field.value}")
+                if emb.footer and emb.footer.text:
+                    content_lines.append(f"\n*{emb.footer.text}*")
 
-        final_content = "\n".join(content_lines) if content_lines else "*[Csak csatolmány / médiaüzenet]*"
+        final_content = "\n".join(content_lines) if content_lines else "*[Üres vagy nem támogatott üzenetformátum]*"
 
+        # Duplikáció szűrés
         msg_key = (final_content, message.author.id)
         if msg_key in last_sent_messages and current_time - last_sent_messages[msg_key] < 2.0:
             return
