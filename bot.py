@@ -18,7 +18,7 @@ SOURCE_CHANNELS = [
 TARGET_CHANNEL_ID = 1565026972663549982
 PING_ROLE_ID = 1565051902964670524
 
-# Duplikáció elleni védelem (ha esetleg több szál futna)
+# Duplikáció elleni védelem
 last_sent_messages = {}
 
 
@@ -47,22 +47,57 @@ async def on_message(message):
         
         if target_channel:
             role_mention = f"<@&{PING_ROLE_ID}>"
+            allowed_mentions = discord.AllowedMentions(roles=True)
 
+            # Ha az eredeti üzenet egy beágyazás (embed) volt
             if message.embeds:
-                await target_channel.send(content=role_mention, embeds=message.embeds)
+                # Opcionálisan küldhetjük az eredeti embedeket is, de feldobhatjuk a pinggel
+                await target_channel.send(content=role_mention, embeds=message.embeds, allowed_mentions=allowed_mentions)
             else:
-                embed = discord.Embed(
-                    description=message.content,
-                    color=0x2b2d31
-                )
-                embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+                # Szép, egyedi prémium embed kártya építése
+                content_text = message.content if message.content else "*[Csak csatolmány / médiaüzenet]*"
                 
-                await target_channel.send(content=role_mention, embed=embed)
+                embed = discord.Embed(
+                    description=content_text,
+                    color=discord.Color.from_rgb(88, 101, 242), # Szép Discord lila/kék tónus
+                    timestamp=message.created_at
+                )
+                
+                # Küldő adatai a fejlécben
+                avatar_url = message.author.display_avatar.url if message.author.display_avatar else None
+                embed.set_author(name=message.author.display_name, icon_url=avatar_url)
+                
+                # Hol honnan jött infó blokk
+                guild_name = message.guild.name if message.guild else "Ismeretlen szerver"
+                embed.add_field(
+                    name="📍 Honnan érkezett?",
+                    value=f"🌐 **Szerver:** {guild_name}\n📁 **Csatorna:** #{message.channel.name}",
+                    inline=False
+                )
+                
+                # Ha van kép a csatolmányban, rakjuk be szépen nagyméretben is
+                if message.attachments:
+                    for att in message.attachments:
+                        if att.url.lower().endswith(('png', 'jpeg', 'jpg', 'gif', 'webp')):
+                            embed.set_image(url=att.url)
+                            break
+
+                embed.set_footer(text=f"User ID: {message.author.id}")
+
+                # Fájlok összekészítése, ha letölthető csatolmányok vannak
+                files = []
+                for attachment in message.attachments:
+                    try:
+                        files.append(await attachment.to_file())
+                    except Exception:
+                        pass
+
+                await target_channel.send(content=role_mention, embed=embed, files=files, allowed_mentions=allowed_mentions)
 
     await bot.process_commands(message)
 
 
-# A Token lekérése a Render környezeti változójából
+# A Token lekérése a környezeti változóból
 TOKEN = os.getenv("TOKEN")
 
 if not TOKEN:
