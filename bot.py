@@ -35,7 +35,26 @@ async def on_message(message):
 
     if message.channel.id in SOURCE_CHANNELS:
         current_time = time.time()
-        msg_key = (message.content, message.author.id)
+        
+        # Szöveg összegyűjtése (akár sima szöveg, akár a BaleszBot embedjének mezőiből)
+        content_lines = []
+        
+        if message.content:
+            content_lines.append(message.content)
+            
+        # Ha a BaleszBot embedben küldte (mint a képen), szedjük ki a tartalmát!
+        if message.embeds:
+            for emb in message.embeds:
+                if emb.title:
+                    content_lines.append(f"**{emb.title}**")
+                if emb.description:
+                    content_lines.append(emb.description)
+                for field in emb.fields:
+                    content_lines.append(f"\n**{field.name}**\n{field.value}")
+
+        final_content = "\n".join(content_lines) if content_lines else "*[Üres üzenet / Embed]*"
+
+        msg_key = (final_content, message.author.id)
         if msg_key in last_sent_messages and current_time - last_sent_messages[msg_key] < 2.0:
             return
         last_sent_messages[msg_key] = current_time
@@ -46,62 +65,58 @@ async def on_message(message):
             role_mention = f"<@&{PING_ROLE_ID}>"
             allowed_mentions = discord.AllowedMentions(roles=True)
 
-            if message.embeds:
-                await target_channel.send(content=role_mention, embeds=message.embeds, allowed_mentions=allowed_mentions)
-            else:
-                content_text = message.content if message.content else "*[Csak csatolmány / médiaüzenet]*"
-                
-                # Elegáns, sötét tónusú embed
-                embed = discord.Embed(
-                    description=content_text,
-                    color=discord.Color.from_rgb(43, 45, 49),
-                    timestamp=message.created_at
-                )
-                
-                # Küldő adatai
-                avatar_url = message.author.display_avatar.url if message.author.display_avatar else None
-                embed.set_author(name=message.author.display_name, icon_url=avatar_url)
-                
-                guild_name = message.guild.name if message.guild else "Ismeretlen szerver"
-                embed.add_field(
-                    name="📍 Forrás információ",
-                    value=f"🌐 **Szerver:** `{guild_name}`\n📁 **Csatorna:** `#{message.channel.name}`",
-                    inline=False
-                )
-                
-                if message.attachments:
-                    for att in message.attachments:
-                        if att.url.lower().endswith(('png', 'jpeg', 'jpg', 'gif', 'webp')):
-                            embed.set_image(url=att.url)
-                            break
+            # Saját, elegáns, sötét tónusú embedünk
+            embed = discord.Embed(
+                description=final_content,
+                color=discord.Color.from_rgb(43, 45, 49),
+                timestamp=message.created_at
+            )
+            
+            # Küldő adatai (aki az eredeti üzenetet írta/küldte)
+            avatar_url = message.author.display_avatar.url if message.author.display_avatar else None
+            embed.set_author(name=message.author.display_name, icon_url=avatar_url)
+            
+            guild_name = message.guild.name if message.guild else "Ismeretlen szerver"
+            embed.add_field(
+                name="📍 Forrás információ",
+                value=f"🌐 **Szerver:** `{guild_name}`\n📁 **Csatorna:** `#{message.channel.name}`",
+                inline=False
+            )
+            
+            # Kép keresése, ha van az eredeti üzenetben
+            if message.attachments:
+                for att in message.attachments:
+                    if att.url.lower().endswith(('png', 'jpeg', 'jpg', 'gif', 'webp')):
+                        embed.set_image(url=att.url)
+                        break
 
-                embed.set_footer(text=f"Közvetítő ID: {message.author.id} • HiénaBot", icon_url=bot.user.display_avatar.url)
+            embed.set_footer(text=f"Közvetítő ID: {message.author.id} • HiénaBot", icon_url=bot.user.display_avatar.url)
 
-                # Fájlok előkészítése
-                files = []
-                for attachment in message.attachments:
-                    try:
-                        files.append(await attachment.to_file())
-                    except Exception:
-                        pass
+            # Fájlok összekészítése
+            files = []
+            for attachment in message.attachments:
+                try:
+                    files.append(await attachment.to_file())
+                except Exception:
+                    pass
 
-                # Interaktív gomb az eredeti üzenethez való ugráshoz
-                view = discord.ui.View()
-                jump_button = discord.ui.Button(
-                    label="Eredeti üzenet megtekintése",
-                    url=message.jump_url,
-                    style=discord.ButtonStyle.link,
-                    emoji="🔗"
-                )
-                view.add_item(jump_button)
+            # Interaktív gomb az eredeti üzenethez való ugráshoz
+            view = discord.ui.View()
+            jump_button = discord.ui.Button(
+                label="Eredeti üzenet megtekintése",
+                url=message.jump_url,
+                style=discord.ButtonStyle.link,
+                emoji="🔗"
+            )
+            view.add_item(jump_button)
 
-                await target_channel.send(
-                    content=role_mention, 
-                    embed=embed, 
-                    files=files, 
-                    view=view, 
-                    allowed_mentions=allowed_mentions
-                )
+            await target_channel.send(
+                content=role_mention, 
+                embed=embed, 
+                files=files, 
+                view=view, 
+                allowed_mentions=allowed_mentions
+            )
 
     await bot.process_commands(message)
 
