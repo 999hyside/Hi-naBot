@@ -51,7 +51,7 @@ async def on_message(message):
             else:
                 content_text = message.content if message.content else "*[Csak csatolmány / médiaüzenet]*"
                 
-                # Elegáns, sötét tónusú embed (Discord Dashboard stílus)
+                # Elegáns, sötét tónusú embed
                 embed = discord.Embed(
                     description=content_text,
                     color=discord.Color.from_rgb(43, 45, 49),
