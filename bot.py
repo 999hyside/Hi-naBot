@@ -8,7 +8,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Konfigurációs azonosítók (id-k)
+# Konfigurációs azonosítók
 SOURCE_CHANNELS = [
     1458946879818567755,
     1485979274442833930,
@@ -30,13 +30,10 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    # Ne reagáljon a saját üzeneteire
     if message.author == bot.user:
         return
 
-    # Ellenőrizzük, hogy a megadott forrás csatornák valamelyikéből jött-e az üzenet
     if message.channel.id in SOURCE_CHANNELS:
-        # Duplikáció szűrés (ha 2 másodpercen belül ugyanaz az üzenet érkezik, eldobja)
         current_time = time.time()
         msg_key = (message.content, message.author.id)
         if msg_key in last_sent_messages and current_time - last_sent_messages[msg_key] < 2.0:
@@ -49,42 +46,38 @@ async def on_message(message):
             role_mention = f"<@&{PING_ROLE_ID}>"
             allowed_mentions = discord.AllowedMentions(roles=True)
 
-            # Ha az eredeti üzenet egy beágyazás (embed) volt
             if message.embeds:
-                # Opcionálisan küldhetjük az eredeti embedeket is, de feldobhatjuk a pinggel
                 await target_channel.send(content=role_mention, embeds=message.embeds, allowed_mentions=allowed_mentions)
             else:
-                # Szép, egyedi prémium embed kártya építése
                 content_text = message.content if message.content else "*[Csak csatolmány / médiaüzenet]*"
                 
+                # Elegáns, sötét tónusú embed (Discord Dashboard stílus)
                 embed = discord.Embed(
                     description=content_text,
-                    color=discord.Color.from_rgb(88, 101, 242), # Szép Discord lila/kék tónus
+                    color=discord.Color.from_rgb(43, 45, 49),
                     timestamp=message.created_at
                 )
                 
-                # Küldő adatai a fejlécben
+                # Küldő adatai
                 avatar_url = message.author.display_avatar.url if message.author.display_avatar else None
                 embed.set_author(name=message.author.display_name, icon_url=avatar_url)
                 
-                # Hol honnan jött infó blokk
                 guild_name = message.guild.name if message.guild else "Ismeretlen szerver"
                 embed.add_field(
-                    name="📍 Honnan érkezett?",
-                    value=f"🌐 **Szerver:** {guild_name}\n📁 **Csatorna:** #{message.channel.name}",
+                    name="📍 Forrás információ",
+                    value=f"🌐 **Szerver:** `{guild_name}`\n📁 **Csatorna:** `#{message.channel.name}`",
                     inline=False
                 )
                 
-                # Ha van kép a csatolmányban, rakjuk be szépen nagyméretben is
                 if message.attachments:
                     for att in message.attachments:
                         if att.url.lower().endswith(('png', 'jpeg', 'jpg', 'gif', 'webp')):
                             embed.set_image(url=att.url)
                             break
 
-                embed.set_footer(text=f"User ID: {message.author.id}")
+                embed.set_footer(text=f"Közvetítő ID: {message.author.id} • HiénaBot", icon_url=bot.user.display_avatar.url)
 
-                # Fájlok összekészítése, ha letölthető csatolmányok vannak
+                # Fájlok előkészítése
                 files = []
                 for attachment in message.attachments:
                     try:
@@ -92,12 +85,27 @@ async def on_message(message):
                     except Exception:
                         pass
 
-                await target_channel.send(content=role_mention, embed=embed, files=files, allowed_mentions=allowed_mentions)
+                # Interaktív gomb az eredeti üzenethez való ugráshoz
+                view = discord.ui.View()
+                jump_button = discord.ui.Button(
+                    label="Eredeti üzenet megtekintése",
+                    url=message.jump_url,
+                    style=discord.ButtonStyle.link,
+                    emoji="🔗"
+                )
+                view.add_item(jump_button)
+
+                await target_channel.send(
+                    content=role_mention, 
+                    embed=embed, 
+                    files=files, 
+                    view=view, 
+                    allowed_mentions=allowed_mentions
+                )
 
     await bot.process_commands(message)
 
 
-# A Token lekérése a környezeti változóból
 TOKEN = os.getenv("TOKEN")
 
 if not TOKEN:
